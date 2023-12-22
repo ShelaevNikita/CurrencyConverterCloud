@@ -43,7 +43,7 @@ class DataMining():
         self.insertCurrencyBD(dateString)
         return
 
-    def chechCurrencyInBD(self, dateString):
+    def checkCurrencyInBD(self, dateString):
         dataBD = datetime.strptime(dateString, '%d-%m-%y').strftime('%Y-%m-%d')
         resultValue = self.currencyBDClass.selectCurrencyValues('rub', dataBD)
         if resultValue is None:
@@ -62,7 +62,7 @@ class DataMining():
         if res is not None:
             self.currencyDictDate = literal_eval(res.decode('utf-8'))
         else:
-            self.chechCurrencyInBD(dateString)      
+            self.checkCurrencyInBD(dateString)      
         return
     
     def makeDateArray(self, dateFrom, dateTo):

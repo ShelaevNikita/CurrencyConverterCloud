@@ -1,12 +1,11 @@
 
 FROM ubuntu
 RUN apt-get update
-RUN apt-get install -y docker-compose libmemcached-dev gcc python-dev
+RUN apt-get install -y gcc python-dev pip
 
-FROM python:3
+FROM python:3.9-slim as base
 RUN mkdir
 WORKDIR
 COPY requirements.txt
 RUN pip install -r requirements.txt
-
-RUN docker-compose up -d
+COPY . .
