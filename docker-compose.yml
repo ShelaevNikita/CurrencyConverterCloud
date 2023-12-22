@@ -1,0 +1,32 @@
+version: '3'
+services:
+    app:
+        build: .
+        command: python AppConverter.py
+        volumes:
+          - ./app:/usr/src/app
+        ports: 
+          - "8000:8000"
+        depends_on:
+          - cache
+          - db
+
+    db:
+        restart: always
+        image: postgres
+        volumes:
+          - ./postgresql/pgdata:/pgdata
+        ports:
+          - "5432:5432"
+        environment:
+          - POSTGRES_USER=postgres
+          - POSTGRES_PASSWORD=nikita
+          - PGDATA=/pgdata
+    
+    cache:
+        image: memcached
+        ports:
+          - "11211:11211"
+        entrypoint:
+          - memcached
+    
