@@ -93,7 +93,7 @@ class VisualizationCur():
     def main(self):
         self.dataMiningClass.prepareBD()
         self.layout()
-        self.app.run_server(host = '0.0.0.0:8050')
+        self.app.run_server(host = '0.0.0.0', port = 8050)
 
 if __name__ == '__main__':
      VisualizationCur().main()
