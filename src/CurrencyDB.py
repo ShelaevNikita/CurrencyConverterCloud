@@ -106,10 +106,10 @@ class DatabaseConverter():
         selectCurrencySQL = 'SELECT id FROM currency WHERE name = %s'
         try:
             self.cursor.execute(selectCurrencySQL, (curName, ))
+            self.cursor.fetchone()
         except psycopg2.Error:
             print(f' Error: No currency with name "{curName}"...')
-            return None
-        return self.cursor.fetchone()
+        return 
 
     def insertCurrencyValue(self, curName, value, date):
         currencyID = self.selectCurrency(curName)
@@ -130,10 +130,10 @@ class DatabaseConverter():
                             WHERE (cur.name = %s AND value.dateC = %s)'''
         try:
             self.cursor.execute(selectCurValue, (curName, date))
+            return self.cursor.fetchone()
         except psycopg2.Error:
             print(' Error: No select currency value...')
-            return None
-        return self.cursor.fetchone()
+        return None      
 
     def main(self):
         self.prepareBD()       

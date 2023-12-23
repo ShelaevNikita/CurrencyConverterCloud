@@ -2,7 +2,7 @@
 
 import plotly.graph_objects as go
 
-from datetime import datetime, timedelta
+from datetime import datetime, date, timedelta
 from dash import Dash, dcc, html, Input, Output, no_update
 
 from src import SpecialSymbols, DataMining
@@ -13,7 +13,7 @@ class VisualizationCur():
         self.app = Dash(__name__)
         self.dataMiningClass = DataMining.DataMining()
         self.allSymbols = SpecialSymbols.SPECIALSYMBOLS
-        self.filterKeys = [keys for (keys, _) in self.allSymbols.items()]
+        self.filterKeys = [keys for keys in self.allSymbols.keys()]
         
     def layout(self):
         self.app.layout = html.Div([
@@ -49,10 +49,10 @@ class VisualizationCur():
                 html.Div([
                     dcc.DatePickerRange(
                         id = 'dateRange',
-                        min_date_allowed = datetime(2020, 1, 1),
-                        max_date_allowed = datetime.today(),
-                        start_date = datetime.today() - timedelta(days = 1),
-                        end_date   = datetime.today(),
+                        min_date_allowed = date(2020, 1, 1),
+                        max_date_allowed = date.today(),
+                        start_date = date.today() - timedelta(days = 2),
+                        end_date   = date.today(),
                         display_format = 'DD-MM-YYYY'
                 )], style = {'textAlign':'center', 'padding':25, 'flex':2})
                               
@@ -76,8 +76,8 @@ class VisualizationCur():
                 
             currencyFromName = self.allSymbols[currencyFrom]
             currencyFromTo   = self.allSymbols[currencyTo]
-            dateFrom         = datetime.fromisoformat(start_date).date()
-            dateTo           = datetime.fromisoformat(end_date).date()
+            dateFrom         = date.fromisoformat(start_date)
+            dateTo           = date.fromisoformat(end_date)
             curCount         = int(count)
 
             dateArray, resultArray = self.dataMiningClass.getCurrencyValueArray(
@@ -93,7 +93,7 @@ class VisualizationCur():
     def main(self):
         self.dataMiningClass.prepareBD()
         self.layout()
-        self.app.run_server(host = '0.0.0.0')
+        self.app.run_server(host = '0.0.0.0:8050')
 
 if __name__ == '__main__':
      VisualizationCur().main()

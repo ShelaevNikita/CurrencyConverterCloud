@@ -4,10 +4,12 @@ import requests
 
 from ast import literal_eval
 from pymemcache.client import base
+from pymemcache.exceptions import MemcacheServerError
 from bs4 import BeautifulSoup as bs
 from datetime import datetime, timedelta
+from threading import Thread
 
-from src import CurrencyDB
+from src import SpecialSymbols, CurrencyDB
 
 class DataMining():
 
@@ -15,11 +17,14 @@ class DataMining():
 
     def __init__(self):
         self.currencyDictDate = {}
-        self.currencyBDClass  = CurrencyDB.DatabaseConverter()
+        self.filterKeys = [value for (_, value) in SpecialSymbols.SPECIALSYMBOLS.items()]
         self.dateNow = None
+        
+        self.currencyBDClass = CurrencyDB.DatabaseConverter()
+        self.processDB = None
 
         self.memClient = base.Client('localhost:11211')
-        self.timeCache = 60 * 60
+        self.timeCache = 60 * 5
        
     def getCurrencyDateURL(self, dateString):
         dataRequest = datetime.strptime(dateString, '%d-%m-%y').strftime('%d/%m/%Y')
@@ -37,28 +42,44 @@ class DataMining():
             self.currencyBDClass.insertCurrencyValue(key, value, dataBD)
         return
 
+    def setCurrencyInMem(self, dateString):
+        try:
+            self.memClient.set(dateString, str(self.currencyDictDate), expire = self.timeCache)
+        except MemcacheServerError:
+            print(' Warning: Memcached closed...')
+        return
+
     def setCurrencyDate(self, dateString):
         self.getCurrencyDateURL(dateString)
-        self.memClient.set(dateString, str(self.currencyDictDate), expire = self.timeCache)
-        self.insertCurrencyBD(dateString)
+        self.processDB = Thread(target = self.insertCurrencyBD, 
+                                args = (dateString, ), daemon = True).start()
+        self.setCurrencyInMem(dateString)
         return
 
     def checkCurrencyInBD(self, dateString):
         dataBD = datetime.strptime(dateString, '%d-%m-%y').strftime('%Y-%m-%d')
-        resultValue = self.currencyBDClass.selectCurrencyValues('rub', dataBD)
+        resultValue = self.currencyBDClass.selectCurrencyValues('rub', dataBD)       
         if resultValue is None:
             self.setCurrencyDate(dateString)
             return
-        for key in self.currencyDictDate.keys():
+        
+        for key in self.filterKeys:
             resultValue = self.currencyBDClass.selectCurrencyValues(key, dataBD)
-            self.currencyDictDate[key] = resultValue[0]
-        self.memClient.set(dateString, str(self.currencyDictDate), expire = self.timeCache)
+            if resultValue is not None:
+                self.currencyDictDate[key] = resultValue[0]
+        self.setCurrencyInMem(dateString)
         return
 
     def getCurrencyDate(self, dateString):
         if dateString == self.dateNow:
             return
-        res = self.memClient.get(dateString)      
+        
+        res = None
+        try:
+            res = self.memClient.get(dateString)
+        except MemcacheServerError:
+            print(' Warning: Memcached closed...')
+        
         if res is not None:
             self.currencyDictDate = literal_eval(res.decode('utf-8'))
         else:
@@ -75,19 +96,25 @@ class DataMining():
         return dateArray
 
     def getCurrencyValueArray(self, currencyFrom, currencyTo, curCount, dateFrom, dateTo):
-        self.currencyDictDate['rub'] = 1.0
         dateArray = self.makeDateArray(dateFrom, dateTo)
         resultArray = []
         for dateString in dateArray:
             self.getCurrencyDate(dateString)
             self.dateNow = dateString
+            
             currencyFromValue = self.currencyDictDate[currencyFrom]
             currencyToValue   = self.currencyDictDate[currencyTo]
             resultArray.append(round((curCount * currencyFromValue / currencyToValue), 3))
+            
+            if self.processDB is not None:
+                self.processDB.join()
+                
         return (dateArray, resultArray)
 
     def prepareBD(self):
         self.currencyBDClass.prepareBD()
+        for key in self.filterKeys:
+            self.currencyDictDate[key] = 1.0
         return
 
     def closeClient(self):
