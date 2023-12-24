@@ -62,6 +62,7 @@ class VisualizationCur():
         ])
 
         @self.app.callback(
+            Output('dateRange', 'max_date_allowed'),
             Output('graph', 'figure'),
             Input('currencyFrom', 'value'),
             Input('currencyTo',   'value'),
@@ -84,11 +85,11 @@ class VisualizationCur():
                 currencyFromName, currencyFromTo, curCount, dateFrom, dateTo)
 
             dateArray = list(map(lambda x: datetime.strptime(x, '%d-%m-%y').date(), dateArray))
-            
+
             fig = go.Figure(data = go.Scatter(x = dateArray, y = resultArray))
             yaxis_title = currencyFromName.upper() + ' \ ' + currencyFromTo.upper()
             fig.update_layout(xaxis_title = 'Date', yaxis_title = yaxis_title, autosize = True)
-            return fig
+            return (date.today(), fig)
 
     def main(self):
         self.dataMiningClass.prepareBD()
